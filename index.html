@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DENISIAGRAM | TOGGLE LIKES</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root { --p: #00f2ff; --bg: #000; --panel: #0d0d0d; --danger: #ff3b3b; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #fff; overflow: hidden; height: 100vh; }
+        
+        .line-t, .line-b { position: fixed; left:0; width:100%; height:3px; background: var(--p); z-index: 35000; box-shadow: 0 0 15px var(--p); }
+        .line-t { top:0; } .line-b { bottom:0; }
+
+        .page { display:none; height: 100vh; width: 100vw; overflow-y: auto; padding: 60px 15px 120px; }
+        .page.active { display: flex; flex-direction: column; }
+
+        nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--panel); border-top: 1px solid #222; display: grid; grid-template-columns: repeat(7, 1fr); padding: 12px 0; z-index: 30000; }
+        .nav-link { display: flex; flex-direction: column; align-items: center; color: #555; cursor: pointer;}
+        .nav-link.active { color: var(--p); }
+        .nav-link span { font-size: 7px; text-transform: uppercase; margin-top: 4px; }
+
+        .btn { width: 100%; padding: 15px; background: var(--p); color: #000; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; margin: 10px 0; }
+        .in { width: 100%; padding: 14px; background: #111; border: 1px solid #333; color: #fff; border-radius: 12px; margin: 8px 0; outline: none; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .card { background: #000; border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; }
+        .card-media { width: 100%; aspect-ratio: 1/1; position: relative; border-radius: 15px; overflow: hidden; border: 1px solid #222; }
+        .card-media img { width: 100%; height: 100%; object-fit: cover; }
+        .card-details { padding: 8px 2px; }
+        .card-title { font-size: 13px; font-weight: bold; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-author { font-size: 10px; color: var(--p); }
+
+        #player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 60000; display: none; }
+        .p-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 60010; display: flex; flex-direction: column; justify-content: space-between; padding: 25px; pointer-events: none; }
+        .p-ui * { pointer-events: auto; }
+        .side-btn { font-size: 28px; color: #fff; cursor: pointer; transition: color 0.2s; }
+        .side-btn.liked { color: var(--danger); }
+
+        #chat-box { position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; background: rgba(0,0,0,0.95); border-top: 1px solid var(--p); border-radius: 20px 20px 0 0; display: none; flex-direction: column; padding: 15px; z-index: 60020; }
+        #chat-msgs { flex: 1; overflow-y: auto; font-size: 14px; margin-bottom: 10px; }
+
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:none; align-items: center; justify-content: center; z-index: 50000; }
+        .m-cont { width: 90%; max-width: 400px; background: #0d0d0d; border: 1px solid var(--p); padding: 25px; border-radius: 25px; max-height: 80vh; overflow-y: auto; }
+        
+        #smart-plus { position: fixed; bottom: 100px; right: 20px; width: 65px; height: 65px; background: var(--p); border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 15000; color: #000; font-size: 30px; }
+    </style>
+</head>
+<body>
+
+<div class="line-t"></div><div class="line-b"></div>
+<div id="smart-plus" onclick="openM('m-upload-type')"><i class="fas fa-plus"></i></div>
+
+<div id="player">
+    <div class="p-ui" id="p-controls">
+        <div style="display:flex; justify-content:space-between;">
+            <i class="fas fa-chevron-left side-btn" onclick="closePlayer()"></i>
+            <span id="p-author-name" style="color:var(--p); font-weight:bold;"></span>
+        </div>
+        <div style="position:absolute; right:20px; bottom:150px; display:flex; flex-direction:column; gap:20px;">
+            <div onclick="toggleLike()"><i class="fas fa-heart side-btn" id="like-btn"></i><div id="like-count" style="text-align:center; font-size:10px;">0</div></div>
+            <i class="fas fa-comment side-btn" onclick="openChat()"></i>
+        </div>
+    </div>
+    <div id="chat-box">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><b>Comments</b><i class="fas fa-times" onclick="closeChat()"></i></div>
+        <div id="chat-msgs"></div>
+        <div style="display:flex; gap:5px;"><input type="text" id="chat-in" class="in" style="margin:0;"><button class="btn" style="width:auto; padding:10px; margin:0;" onclick="sendMsg()">SEND</button></div>
+    </div>
+    <div style="width:100%; height:100%;" onclick="togglePlayerUI()">
+        <video id="v-play" style="width:100%; height:100%; object-fit:contain; display:none;" loop autoplay></video>
+        <iframe id="g-play" style="width:100%; height:100%; border:none; display:none;"></iframe>
+        <div id="b-play" style="padding:100px 25px; display:none; overflow-y:auto; height:100%;"></div>
+    </div>
+</div>
+
+<div id="p-home" class="page active">
+    <h1 style="color:var(--p); letter-spacing: 2px;">DENISIAGRAM</h1>
+    <button class="btn" onclick="openM('m-create-ch')">CREATE CHANNEL</button>
+    <div id="ch-list"></div>
+</div>
+
+<div id="p-view" class="page">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <i class="fas fa-arrow-left" onclick="showP('p-home')" style="color:var(--p); font-size:24px;"></i>
+        <h2 id="view-title">EXPLORE</h2>
+        <i class="fas fa-chart-bar" id="ana-icon" onclick="openAnalytics()" style="color:var(--p); font-size:24px; display:none;"></i>
+    </div>
+    <div id="ch-profile" style="background:#111; padding:15px; border-radius:15px; margin-bottom:20px; display:none; border:1px solid #333;">
+        <h3 id="ch-prof-name"></h3>
+    </div>
+    <div class="grid" id="content-grid"></div>
+</div>
+
+<nav>
+    <div class="nav-link active" onclick="showP('p-home', this)"><i class="fas fa-home"></i><span>Home</span></div>
+    <div class="nav-link" onclick="go('film', this)"><i class="fas fa-film"></i><span>Films</span></div>
+    <div class="nav-link" onclick="go('video', this)"><i class="fas fa-video"></i><span>Video</span></div>
+    <div class="nav-link" onclick="go('reels', this)"><i class="fas fa-bolt"></i><span>Reels</span></div>
+    <div class="nav-link" onclick="go('game', this)"><i class="fas fa-gamepad"></i><span>Games</span></div>
+    <div class="nav-link" onclick="go('book', this)"><i class="fas fa-book"></i><span>Books</span></div>
+    <div class="nav-link" onclick="go('music', this)"><i class="fas fa-music"></i><span>Music</span></div>
+</nav>
+
+<div id="m-analytics" class="modal"><div class="m-cont">
+    <h3 style="color:var(--p)">ANALYTICS & TOOLS</h3>
+    <div id="ana-list" style="margin-top:15px;"></div>
+    <button class="btn" onclick="closeM()">CLOSE</button>
+</div></div>
+
+<div id="m-create-ch" class="modal"><div class="m-cont">
+    <h3>New Channel</h3>
+    <input type="text" id="new-ch-name" class="in" placeholder="Name">
+    <input type="file" id="new-ch-img" class="in" accept="image/*">
+    <button class="btn" onclick="createChannel()">CREATE</button>
+</div></div>
+
+<div id="m-upload-type" class="modal" onclick="if(event.target==this)closeM()"><div class="m-cont">
+    <h3>Upload</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button class="btn" onclick="prepareUpload('film')">FILM</button>
+        <button class="btn" onclick="prepareUpload('video')">VIDEO</button>
+        <button class="btn" onclick="prepareUpload('reels')">REEL</button>
+        <button class="btn" onclick="prepareUpload('game')">GAME</button>
+        <button class="btn" onclick="prepareUpload('book')">BOOK</button>
+        <button class="btn" onclick="prepareUpload('music')">MUSIC</button>
+    </div>
+</div></div>
+
+<div id="m-final-up" class="modal"><div class="m-cont">
+    <h3 id="up-type-title">Publish</h3>
+    <input type="text" id="post-title" class="in" placeholder="Title">
+    <input type="file" id="post-cover" class="in" accept="image/*">
+    <div id="box-file"><input type="file" id="post-file" class="in"></div>
+    <div id="box-text" style="display:none"><textarea id="post-data" class="in" rows="5"></textarea></div>
+    <button class="btn" id="pub-btn" onclick="publishNow()">PUBLISH</button>
+</div></div>
+
+<script>
+    let db, curCh, curMode, curOpenedPost;
+    const req = indexedDB.open("DENISIAGRAM_V8", 1);
+    req.onupgradeneeded = e => {
+        let d = e.target.result;
+        d.createObjectStore('channels', {keyPath:'id', autoIncrement:true});
+        d.createObjectStore('posts', {keyPath:'id', autoIncrement:true});
+    };
+    req.onsuccess = e => { db = e.target.result; renderChannels(); };
+
+    function openM(id){ document.getElementById(id).style.display='flex'; }
+    function closeM(){ document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); }
+
+    function createChannel(){
+        const n=document.getElementById('new-ch-name').value, f=document.getElementById('new-ch-img').files[0];
+        if(!n || !f) return;
+        const r=new FileReader(); r.onload=e=>{
+            db.transaction('channels','readwrite').objectStore('channels').add({name:n, img:e.target.result}).onsuccess=()=>{renderChannels(); closeM();};
+        }; r.readAsDataURL(f);
+    }
+
+    function renderChannels(){
+        const l=document.getElementById('ch-list'); l.innerHTML='';
+        db.transaction('channels').objectStore('channels').getAll().onsuccess=e=>{
+            e.target.result.forEach(ch=>{
+                let d=document.createElement('div');
+                d.style="padding:15px; background:#111; border-radius:15px; margin-top:10px; display:flex; align-items:center; gap:15px; border:1px solid #222;";
+                d.innerHTML=`<img src="${ch.img}" style="width:45px; height:45px; border-radius:50%; object-fit:cover;"><b>${ch.name}</b>`;
+                d.onclick=()=>{curCh=ch; go('channel');}; l.appendChild(d);
+            });
+        };
+    }
+
+    function go(m, el){
+        curMode=m; document.getElementById('view-title').innerText=m.toUpperCase();
+        document.getElementById('ana-icon').style.display = (m==='channel') ? 'block' : 'none';
+        if(curCh) document.getElementById('ch-prof-name').innerText = curCh.name;
+        document.getElementById('ch-profile').style.display = (m==='channel')?'block':'none';
+        showP('p-view', el); renderGrid();
+    }
+
+    function showP(id, el){
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(el){ document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active')); el.classList.add('active'); }
+        document.getElementById('smart-plus').style.display = (curCh && id==='p-view') ? 'flex' : 'none';
+    }
+
+    function prepareUpload(type){
+        curMode = type; closeM();
+        document.getElementById('up-type-title').innerText = "New " + type;
+        document.getElementById('box-file').style.display = (type==='game'||type==='book') ? 'none' : 'block';
+        document.getElementById('box-text').style.display = (type==='game'||type==='book') ? 'block' : 'none';
+        openM('m-final-up');
+    }
+
+    function publishNow(){
+        const t=document.getElementById('post-title').value, c=document.getElementById('post-cover').files[0], f=document.getElementById('post-file').files[0], d=document.getElementById('post-data').value;
+        if(!t || !c) return;
+        const r=new FileReader(); r.onload=e=>{
+            // Добавляем поле myVote (0 - нет лайка, 1 - есть лайк)
+            const p = {title:t, cover:e.target.result, type:curMode, cid:curCh.id, author:curCh.name, data:d, likes:0, comments:[], myVote: 0};
+            if(f){ const r2=new FileReader(); r2.onload=ev=>{p.file=ev.target.result; saveDB(p);}; r2.readAsDataURL(f); }
+            else saveDB(p);
+        }; r.readAsDataURL(c);
+    }
+    function saveDB(p){ db.transaction('posts','readwrite').objectStore('posts').add(p).onsuccess=()=>{closeM(); renderGrid();}; }
+
+    function renderGrid(){
+        const g=document.getElementById('content-grid'); g.innerHTML='';
+        db.transaction('posts').objectStore('posts').getAll().onsuccess=e=>{
+            e.target.result.filter(p=>curMode==='channel'?p.cid===curCh.id:p.type===curMode).reverse().forEach(p=>{
+                let d=document.createElement('div'); d.className='card';
+                d.innerHTML=`<div class="card-media"><img src="${p.cover}"></div><div class="card-details"><span class="card-title">${p.title}</span><span class="card-author">${p.author}</span></div>`;
+                d.onclick=()=>openPlayer(p); g.appendChild(d);
+            });
+        };
+    }
+
+    function openPlayer(p){
+        curOpenedPost = p; document.getElementById('player').style.display='block';
+        document.getElementById('p-author-name').innerText = p.author;
+        document.getElementById('like-count').innerText = p.likes;
+        
+        // Установка состояния иконки лайка
+        const lb = document.getElementById('like-btn');
+        lb.className = p.myVote === 1 ? "fas fa-heart side-btn liked" : "fas fa-heart side-btn";
+
+        const v=document.getElementById('v-play'), g=document.getElementById('g-play'), b=document.getElementById('b-play');
+        v.style.display=g.style.display=b.style.display='none';
+        if(p.type==='game'){ g.style.display='block'; let bl=new Blob([p.data],{type:'text/html'}); g.src=URL.createObjectURL(bl); }
+        else if(p.type==='book'){ b.style.display='block'; b.innerText = p.data; }
+        else { v.style.display='block'; v.src=p.file; }
+    }
+
+    // НОВАЯ ЛОГИКА ЛАЙКА
+    function toggleLike(){
+        const lb = document.getElementById('like-btn');
+        if(curOpenedPost.myVote === 0) {
+            // Ставим лайк
+            curOpenedPost.likes++;
+            curOpenedPost.myVote = 1;
+            lb.classList.add('liked');
+        } else {
+            // Убираем лайк
+            curOpenedPost.likes--;
+            curOpenedPost.myVote = 0;
+            lb.classList.remove('liked');
+        }
+        document.getElementById('like-count').innerText = curOpenedPost.likes;
+        db.transaction('posts','readwrite').objectStore('posts').put(curOpenedPost).onsuccess=()=>renderGrid();
+    }
+
+    function closePlayer(){ document.getElementById('player').style.display='none'; document.getElementById('v-play').pause(); }
+    function togglePlayerUI(){ const ui=document.getElementById('p-controls'); ui.style.display=(ui.style.display==='none')?'flex':'none';}
+    function openChat(){ document.getElementById('chat-box').style.display='flex'; }
+    function closeChat(){ document.getElementById('chat-box').style.display='none'; }
+    function sendMsg(){ const i=document.getElementById('chat-in'); if(!i.value)return; curOpenedPost.comments.push(i.value); i.value=''; db.transaction('posts','readwrite').objectStore('posts').put(curOpenedPost).onsuccess=()=>renderComments(); }
+    function renderComments(){ document.getElementById('chat-msgs').innerHTML=curOpenedPost.comments.map(m=>`<div><b>User:</b> ${m}</div>`).join(''); }
+
+    function openAnalytics(){
+        const l=document.getElementById('ana-list'); l.innerHTML='Loading...';
+        db.transaction('posts').objectStore('posts').getAll().onsuccess=e=>{
+            l.innerHTML = '';
+            e.target.result.filter(p=>p.cid===curCh.id).forEach(p=>{
+                let d=document.createElement('div'); d.className='ana-card';
+                d.innerHTML=`<input id="et-${p.id}" value="${p.title}" class="in" style="padding:5px;"><div style="display:flex; justify-content:space-between;"><span>❤️ ${p.likes} Likes</span><div><button class="btn" style="width:auto; padding:5px; margin:0 5px;" onclick="upPost(${p.id})">SAVE</button><button class="btn" style="width:auto; padding:5px; margin:0; background:red; color:white;" onclick="delPost(${p.id})">DEL</button></div></div>`;
+                l.appendChild(d);
+            });
+            openM('m-analytics');
+        };
+    }
+    function delPost(id){ if(confirm("Delete?")){db.transaction('posts','readwrite').objectStore('posts').delete(id).onsuccess=()=>{openAnalytics(); renderGrid();};}}
+    function upPost(id){ const nt = document.getElementById('et-'+id).value; db.transaction('posts','readwrite').objectStore('posts').get(id).onsuccess=e=>{ let p=e.target.result; p.title=nt; db.transaction('posts','readwrite').objectStore('posts').put(p).onsuccess=()=>alert("Saved");}}
+</script>
+</body>
+</html>
