@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DENISIAGRAM | NEON REBORN</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root { --p: #00f2ff; --bg: #000; --glow: 0 0 30px #00f2ff; --accent: #ff00ff; --red: #ff4444; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; overflow: hidden; height: 100vh; }
+
+        .space { position: fixed; top:0; left:0; width:100%; height:100%; z-index:-1; background: radial-gradient(circle at center, #004466 0%, #000 100%); }
+        .star { position: absolute; background: var(--p); border-radius: 50%; box-shadow: 0 0 15px var(--p); animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        .logo-box { text-align: center; padding: 40px 0; }
+        .denis-logo { font-size: 100px; font-weight: 900; color: var(--p); text-shadow: var(--glow); display: inline-block; animation: rotateD 4s linear infinite; }
+        @keyframes rotateD { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+
+        .page { display:none; height: 100vh; width: 100vw; overflow-y: auto; padding: 60px 15px 130px; }
+        .page.active { display: flex; flex-direction: column; align-items: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 800px; }
+        .card { position: relative; background: rgba(0,0,0,0.6); border: 2px solid var(--p); border-radius: 15px; overflow: hidden; box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        .card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+        .card-t { padding: 10px; text-align: center; font-size: 14px; font-weight: bold; color: var(--p); text-transform: uppercase; }
+        .card-stats { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 5px; font-size: 10px; color: var(--p); border: 1px solid var(--p); }
+
+        nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #050505; border-top: 2px solid var(--p); display: grid; grid-template-columns: repeat(7, 1fr); padding: 12px 0; z-index: 1000; }
+        .nav-link { color: #224444; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .nav-link.active { color: var(--p); text-shadow: var(--glow); }
+        .nav-link span { font-size: 8px; text-transform: uppercase; margin-top: 4px; }
+
+        .btn { width: 100%; padding: 16px; background: var(--p); color: #000; font-weight: 900; border: none; border-radius: 12px; margin: 10px 0; cursor: pointer; box-shadow: var(--glow); text-transform: uppercase; }
+        .in { width: 100%; padding: 14px; background: #001111; border: 1px solid var(--p); color: #fff; border-radius: 10px; margin: 5px 0; outline: none; }
+        
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 5000; display:none; align-items:center; justify-content:center; }
+        .m-cont { width: 95%; max-width: 450px; background: #000; border: 2px solid var(--p); padding: 25px; border-radius: 20px; box-shadow: var(--glow); max-height: 85vh; overflow-y: auto; }
+
+        #smart-plus { position: fixed; bottom: 90px; right: 20px; width: 65px; height: 65px; background: var(--p); border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 4000; color: #000; font-size: 28px; box-shadow: var(--glow); }
+        
+        #player { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 10000; display:none; flex-direction: column; }
+        .close-p { position: absolute; top: 20px; right: 20px; font-size: 40px; color: var(--p); cursor: pointer; z-index: 10001; }
+        .p-actions { display: flex; justify-content: space-around; background: #050505; padding: 15px; border-top: 2px solid var(--p); }
+        .act-btn { text-align: center; color: var(--p); cursor: pointer; flex: 1; }
+        .act-btn i { font-size: 24px; display: block; }
+        .act-btn span { font-size: 10px; text-transform: uppercase; margin-top: 4px; display: block; }
+
+        #chat-list { height: 250px; overflow-y: auto; background: #080808; border: 1px solid var(--p); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+        .msg { font-size: 13px; margin-bottom: 8px; border-left: 2px solid var(--accent); padding-left: 8px; }
+        .msg b { color: var(--p); display: block; font-size: 10px; text-transform: uppercase; }
+
+        .stat-item { background: rgba(255,255,255,0.05); border: 1px solid var(--p); padding: 10px; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .stat-info { font-size: 12px; }
+        .del-btn { background: var(--red); color: #fff; border: none; padding: 8px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="space" id="star-field"></div>
+<div id="smart-plus" onclick="openM('m-upload')"><i class="fas fa-plus"></i></div>
+
+<div id="player">
+    <div class="close-p" onclick="closePlayer()">×</div>
+    <div id="p-inner" style="flex:1; display:flex; align-items:center; justify-content:center; overflow: hidden;">
+        <video id="v-play" style="max-width:100%; max-height:100%; display:none;" controls autoplay></video>
+        <iframe id="g-play" style="width:100%; height:100%; border:none; display:none; background:#fff;"></iframe>
+        <div id="b-play" style="padding:40px; display:none; color:#fff; overflow-y:auto; height:100%; width:100%;"></div>
+    </div>
+    <div class="p-actions">
+        <div class="act-btn" onclick="likePost()"><i id="l-icon" class="far fa-heart"></i><span id="l-count">0</span></div>
+        <div class="act-btn" onclick="openM('m-chat')"><i class="far fa-comment"></i><span>CHAT</span></div>
+        <div class="act-btn" onclick="openM('m-stats')"><i class="fas fa-chart-line"></i><span>ANALYTICS</span></div>
+    </div>
+</div>
+
+<div id="p-home" class="page active">
+    <div class="logo-box"><div class="denis-logo">D</div></div>
+    <h1 style="color:var(--p); text-shadow: var(--glow); font-size: 35px; letter-spacing: 5px;">DENISIAGRAM</h1>
+    <button class="btn" onclick="openM('m-ch')">NEW IDENTITY</button>
+    <div id="ch-list" style="width:100%;"></div>
+</div>
+
+<div id="p-view" class="page">
+    <div style="display:flex; width:100%; justify-content:space-between; margin-bottom: 20px;">
+        <i class="fas fa-arrow-left" style="color:var(--p); font-size:30px;" onclick="showP('p-home')"></i>
+        <h2 id="view-title" style="color:var(--p); text-shadow: var(--glow);"></h2>
+        <div style="width:30px;"></div>
+    </div>
+    <div class="grid" id="content-grid"></div>
+</div>
+
+<nav>
+    <div class="nav-link active" onclick="showP('p-home', this)"><i class="fas fa-home"></i><span>Home</span></div>
+    <div class="nav-link" onclick="go('film', this)"><i class="fas fa-film"></i><span>Film</span></div>
+    <div class="nav-link" onclick="go('video', this)"><i class="fas fa-video"></i><span>Video</span></div>
+    <div class="nav-link" onclick="go('reels', this)"><i class="fas fa-bolt"></i><span>Reels</span></div>
+    <div class="nav-link" onclick="go('game', this)"><i class="fas fa-gamepad"></i><span>Games</span></div>
+    <div class="nav-link" onclick="go('book', this)"><i class="fas fa-book"></i><span>Book</span></div>
+    <div class="nav-link" onclick="go('music', this)"><i class="fas fa-music"></i><span>Music</span></div>
+</nav>
+
+<div id="m-ch" class="modal"><div class="m-cont">
+    <h2>CREATE IDENTITY</h2>
+    <input type="text" id="ch-n" class="in" placeholder="Identity Name">
+    <input type="file" id="ch-i" class="in" accept="image/*">
+    <button class="btn" onclick="createCh()">CREATE</button>
+    <button class="btn" style="background:#222; color:#fff;" onclick="closeM()">BACK</button>
+</div></div>
+
+<div id="m-upload" class="modal"><div class="m-cont">
+    <h2>SELECT CATEGORY</h2>
+    <div class="grid" style="gap:10px;">
+        <button class="btn" onclick="prepUp('film')">FILM</button>
+        <button class="btn" onclick="prepUp('video')">VIDEO</button>
+        <button class="btn" onclick="prepUp('reels')">REELS</button>
+        <button class="btn" onclick="prepUp('game')">GAME</button>
+        <button class="btn" onclick="prepUp('book')">BOOK</button>
+        <button class="btn" onclick="prepUp('music')">MUSIC</button>
+    </div>
+</div></div>
+
+<div id="m-final" class="modal"><div class="m-cont">
+    <h2 id="up-t">PUBLISH</h2>
+    <input type="text" id="p-t" class="in" placeholder="Content Title">
+    <p style="color:var(--p); font-size:10px;">COVER IMAGE:</p>
+    <input type="file" id="p-c" class="in" accept="image/*">
+    <div id="f-box"><p style="color:var(--p); font-size:10px;">MEDIA FILE:</p><input type="file" id="p-f" class="in"></div>
+    <div id="t-box" style="display:none;"><p style="color:var(--p); font-size:10px;">CODE / TEXT:</p><textarea id="p-d" class="in" rows="5"></textarea></div>
+    <button class="btn" onclick="publish()">SYNC TO EMPIRE</button>
+</div></div>
+
+<div id="m-chat" class="modal"><div class="m-cont">
+    <h2 style="color:var(--p)">EMPIRE CHAT</h2>
+    <div id="chat-list"></div>
+    <input type="text" id="chat-in" class="in" placeholder="Write message...">
+    <button class="btn" onclick="sendMsg()">SEND MESSAGE</button>
+    <button class="btn" style="background:#222; color:#fff;" onclick="closeM()">BACK</button>
+</div></div>
+
+<div id="m-stats" class="modal"><div class="m-cont">
+    <h2 style="color:var(--p)">CHANNEL ANALYTICS</h2>
+    <div id="stat-list-all" style="margin-top:15px;"></div>
+    <button class="btn" onclick="closeM()">CLOSE</button>
+</div></div>
+
+<script>
+    let db, curCh, curMode, curPost;
+
+    // Звездное небо
+    const sf = document.getElementById('star-field');
+    for(let i=0; i<80; i++){
+        let s = document.createElement('div'); s.className='star';
+        s.style.width = s.style.height = Math.random()*3+'px';
+        s.style.left = Math.random()*100+'%'; s.style.top = Math.random()*100+'%';
+        sf.appendChild(s);
+    }
+
+    // База данных
+    const req = indexedDB.open("DENISIAGRAM_DB_V10", 1);
+    req.onsuccess = e => { db = e.target.result; renderCh(); };
+    req.onupgradeneeded = e => {
+        let d = e.target.result;
+        d.createObjectStore('ch', {keyPath:'id', autoIncrement:true});
+        d.createObjectStore('ps', {keyPath:'id', autoIncrement:true});
+    };
+
+    function openM(id){ 
+        document.getElementById(id).style.display='flex'; 
+        if(id==='m-chat') renderChat();
+        if(id==='m-stats') renderChannelStats();
+    }
+    function closeM(){ document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); }
+
+    function createCh(){
+        const n=document.getElementById('ch-n').value, f=document.getElementById('ch-i').files[0];
+        if(!n || !f) return;
+        const r=new FileReader(); r.onload=e=>{
+            db.transaction('ch','readwrite').objectStore('ch').add({name:n, img:e.target.result}).onsuccess=()=>{ renderCh(); closeM(); };
+        }; r.readAsDataURL(f);
+    }
+
+    function renderCh(){
+        const l=document.getElementById('ch-list'); l.innerHTML='';
+        db.transaction('ch').objectStore('ch').getAll().onsuccess=e=>{
+            e.target.result.forEach(ch=>{
+                let d=document.createElement('div');
+                d.style="padding:15px; background:rgba(0, 242, 255, 0.1); border-radius:15px; margin-top:10px; display:flex; align-items:center; gap:15px; border:2px solid var(--p); cursor:pointer;";
+                d.innerHTML=`<img src="${ch.img}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:1px solid var(--p);"><b>${ch.name}</b>`;
+                d.onclick=()=>{ curCh=ch; go('channel'); }; l.appendChild(d);
+            });
+        };
+    }
+
+    function go(m, el){
+        if(m==='channel'){ curMode='channel'; document.getElementById('view-title').innerText=curCh.name; }
+        else { curMode=m; document.getElementById('view-title').innerText=m.toUpperCase(); }
+        showP('p-view', el);
+        renderGrid();
+    }
+
+    function showP(id, el){
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(el){ document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active')); el.classList.add('active'); }
+        document.getElementById('smart-plus').style.display = (curCh && id==='p-view') ? 'flex' : 'none';
+    }
+
+    function prepUp(t){
+        curMode=t; closeM();
+        document.getElementById('up-t').innerText="PUBLISH "+t.toUpperCase();
+        document.getElementById('f-box').style.display=(t==='game'||t==='book')?'none':'block';
+        document.getElementById('t-box').style.display=(t==='game'||t==='book')?'block':'none';
+        openM('m-final');
+    }
+
+    function publish(){
+        const t=document.getElementById('p-t').value, c=document.getElementById('p-c').files[0], f=document.getElementById('p-f').files[0], d=document.getElementById('p-d').value;
+        if(!t || !c) return alert("Title and Cover required!");
+        closeM();
+        const r = new FileReader();
+        r.onload = e => {
+            const post = {title:t, cover:e.target.result, type:curMode, cid:curCh.id, data:d, likes:0, comments:[], views:0};
+            if(f){
+                const r2 = new FileReader();
+                r2.onload = ev => { post.file = ev.target.result; saveFinal(post); };
+                r2.readAsDataURL(f);
+            } else { saveFinal(post); }
+        };
+        r.readAsDataURL(c);
+    }
+
+    function saveFinal(post){
+        db.transaction('ps', 'readwrite').objectStore('ps').add(post).onsuccess = () => renderGrid();
+    }
+
+    function renderGrid(){
+        const g = document.getElementById('content-grid');
+        g.innerHTML = '';
+        db.transaction('ps').objectStore('ps').getAll().onsuccess = e => {
+            const all = e.target.result;
+            const items = all.filter(p => curMode === 'channel' ? p.cid === curCh.id : p.type === curMode).reverse();
+            items.forEach(p => {
+                let d = document.createElement('div'); d.className = 'card';
+                d.innerHTML = `<div class="card-stats">👁 ${p.views||0}</div><img src="${p.cover}"><div class="card-t">${p.title}</div>`;
+                d.onclick = () => openPlayer(p);
+                g.appendChild(d);
+            });
+        };
+    }
+
+    function openPlayer(p){
+        curPost = p;
+        p.views = (p.views || 0) + 1;
+        updatePost();
+        document.getElementById('player').style.display = 'flex';
+        document.getElementById('l-count').innerText = p.likes || 0;
+        document.getElementById('l-icon').className = p.isLiked ? "fas fa-heart" : "far fa-heart";
+        const v = document.getElementById('v-play'), g = document.getElementById('g-play'), b = document.getElementById('b-play');
+        v.style.display = g.style.display = b.style.display = 'none';
+        if(p.type === 'game'){ g.style.display = 'block'; g.srcdoc = p.data; }
+        else if(p.type === 'book'){ b.style.display = 'block'; b.innerText = p.data; }
+        else { v.style.display = 'block'; v.src = p.file; }
+    }
+
+    function closePlayer(){ 
+        const v = document.getElementById('v-play');
+        v.pause(); v.src = "";
+        document.getElementById('player').style.display = 'none'; 
+        renderGrid(); 
+    }
+
+    function updatePost(){
+        db.transaction('ps', 'readwrite').objectStore('ps').put(curPost);
+    }
+
+    function likePost(){
+        if(!curPost.isLiked){ curPost.likes = (curPost.likes || 0) + 1; curPost.isLiked = true; }
+        else { curPost.likes -= 1; curPost.isLiked = false; }
+        document.getElementById('l-count').innerText = curPost.likes;
+        document.getElementById('l-icon').className = curPost.isLiked ? "fas fa-heart" : "far fa-heart";
+        updatePost();
+    }
+
+    function sendMsg(){
+        const inp = document.getElementById('chat-in');
+        if(!inp.value) return;
+        if(!curPost.comments) curPost.comments = [];
+        curPost.comments.push({name: curCh.name, text: inp.value});
+        inp.value = '';
+        renderChat();
+        updatePost();
+    }
+
+    function renderChat(){
+        const list = document.getElementById('chat-list');
+        list.innerHTML = '';
+        if(curPost.comments){
+            curPost.comments.forEach(m => {
+                list.innerHTML += `<div class="msg"><b>${m.name}</b>${m.text}</div>`;
+            });
+        }
+        list.scrollTop = list.scrollHeight;
+    }
+
+    function renderChannelStats(){
+        const list = document.getElementById('stat-list-all');
+        list.innerHTML = '';
+        db.transaction('ps').objectStore('ps').getAll().onsuccess = e => {
+            const all = e.target.result;
+            const myPosts = all.filter(p => p.cid === curCh.id);
+            if(myPosts.length === 0) list.innerHTML = '<p style="text-align:center">Empty.</p>';
+            myPosts.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'stat-item';
+                item.innerHTML = `
+                    <div class="stat-info">
+                        <b style="color:var(--p)">${p.title}</b><br>
+                        <span>👁 ${p.views || 0} | ❤️ ${p.likes || 0}</span>
+                    </div>
+                    <button class="del-btn" onclick="deletePost(${p.id})"><i class="fas fa-trash"></i></button>
+                `;
+                list.appendChild(item);
+            });
+        };
+    }
+
+    function deletePost(id){
+        if(confirm("DELETE FROM EMPIRE?")){
+            db.transaction('ps', 'readwrite').objectStore('ps').delete(id).onsuccess = () => {
+                renderChannelStats();
+                renderGrid();
+                if(curPost && curPost.id === id) closePlayer();
+            };
+        }
+    }
+</script>
+</body>
+</html>
